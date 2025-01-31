@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload to S3</title>
+</head>
+<body>
+    <h1>Upload a File</h1>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" name="file" required />
+        <button type="submit">Upload</button>
+    </form>
+    <p id="uploadResult"></p>
+
+    <h1>Retrieve a File</h1>
+    <form id="retrieveForm">
+        <input type="text" id="codeInput" name="code" placeholder="Enter secret code" required />
+        <button type="submit">Retrieve</button>
+    </form>
+    <p id="retrieveResult"></p>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                document.getElementById('uploadResult').innerText = `File uploaded successfully. Your code is: ${result.code}`;
+            } else {
+                document.getElementById('uploadResult').innerText = `Error: ${result.message}`;
+            }
+        });
+
+        document.getElementById('retrieveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codeInput = document.getElementById('codeInput').value;
+
+            const response = await fetch(`/api/retrieve/${codeInput}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = codeInput; // you can modify to use the original filename if needed
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.getElementById('retrieveResult').innerText = `File retrieved successfully.`;
+            } else {
+                const result = await response.json();
+                document.getElementById('retrieveResult').innerText = `Error: ${result.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
